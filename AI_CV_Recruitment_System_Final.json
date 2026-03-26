@@ -1,0 +1,1344 @@
+{
+  "name": "AI CV Recruitment System Final",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {}
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "has:attachment",
+          "readStatus": "unread"
+        },
+        "options": {
+          "dataPropertyAttachmentsPrefixName": "attachment",
+          "downloadAttachments": true
+        }
+      },
+      "id": "7144ab51-3f88-4535-8dc4-bedce8cf9805",
+      "name": "When CV Email Arrives",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1120,
+        416
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "r8MgauHRsxbhYlXE",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary[Object.keys($binary)[0]].mimeType }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "pdf-check"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary[Object.keys($binary)[0]].mimeType }}",
+                    "rightValue": "image/",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "image-check"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary[Object.keys($binary)[0]].mimeType }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "docx-check"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DOCX"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary[Object.keys($binary)[0]].mimeType }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "id": "fallback-1"
+                  },
+                  {
+                    "leftValue": "={{ $binary[Object.keys($binary)[0]].mimeType }}",
+                    "rightValue": "image/",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notStartsWith"
+                    },
+                    "id": "fallback-2"
+                  },
+                  {
+                    "leftValue": "={{ $binary[Object.keys($binary)[0]].mimeType }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "id": "fallback-3"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TXT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3832ae59-45ff-4f7e-b19a-50f2d27429b5",
+                    "leftValue": "{{ $binary[Object.keys($binary)[0]].mimeType }}",
+                    "rightValue": "text/plain",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7f76dc33-4f09-4d92-a7a8-97d22b66f278",
+      "name": "Detect File Format",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -896,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment0",
+        "options": {
+          "joinPages": true
+        }
+      },
+      "id": "cada3e08-f97e-470d-8a36-01e74f9f752e",
+      "name": "Extract PDF Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -672,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.text || $input.item.json.data || '';\nconst text = raw.trim();\nif (text.length > 10) {\n  return [{\n    json: {\n      cvText: text.substring(0, 6000),\n      method: 'pdf_direct',\n      fromEmail: $input.item.json.from || '',\n      subject: $input.item.json.subject || ''\n    },\n    binary: $input.item.binary\n  }];\n} else {\n  return [{\n    json: {\n      cvText: '',\n      method: 'pdf_needs_ocr',\n      fromEmail: $input.item.json.from || '',\n      subject: $input.item.json.subject || ''\n    },\n    binary: $input.item.binary\n  }];\n}"
+      },
+      "id": "b6d0f2cd-0c63-44f0-a4dd-53978a90b1fb",
+      "name": "Check PDF Has Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.method }}",
+                    "rightValue": "pdf_direct",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "has-text"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Has Text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.method }}",
+                    "rightValue": "pdf_needs_ocr",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "needs-ocr"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Needs OCR"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4b91862e-e751-489c-8aa7-9cd65fe764a3",
+      "name": "PDF Text or OCR?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -224,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"meta-llama/llama-4-scout-17b-16e-instruct\",\n  \"messages\": [{\"role\": \"user\", \"content\": [{\"type\": \"image_url\", \"image_url\": {\"url\": \"={{ 'data:' + $binary.attachment0.mimeType + ';base64,' + $binary.attachment0.data }}\"}}, {\"type\": \"text\", \"text\": \"Extract all text from this scanned PDF CV. Return only raw text.\"}]}],\n  \"max_tokens\": 2000\n}",
+        "options": {}
+      },
+      "id": "a35bdc25-9f60-470e-af4f-503283c546f7",
+      "name": "Groq OCR (Scanned PDF)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst binary = item.binary || {};\nconst keys = Object.keys(binary);\nconst attKey = keys.find(k => binary[k]?.mimeType?.startsWith('image/')) || keys.find(k => k.startsWith('attachment')) || keys[0];\nif (!attKey) throw new Error('No attachment found');\nconst mimeType = binary[attKey].mimeType || 'image/png';\nconst data = binary[attKey].data;\nif (!data) throw new Error('Binary data empty!');\nreturn [{\n  json: {\n    imageUrl: 'data:' + mimeType + ';base64,' + data,\n    mimeType: mimeType,\n    fromEmail: item.json?.from?.value?.[0]?.address || '',\n    subject: item.json?.subject || ''\n  },\n  binary: binary\n}];"
+      },
+      "id": "6ed3fdda-f591-4c01-8df6-eddb6b82e9dc",
+      "name": "Prepare Image Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "attachment0",
+        "options": {}
+      },
+      "id": "1e08d0a5-e6c9-4efa-95a5-7c2b4d58f55d",
+      "name": "Extract DOCX Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\nconst json = item.json;\nlet cvText = '';\nlet method = 'unknown';\nif (json.ParsedResults && json.ParsedResults[0]) {\n  cvText = json.ParsedResults[0].ParsedText || '';\n  method = 'ocrspace';\n}\nelse if (json.cvText && json.cvText.length > 10) {\n  cvText = json.cvText;\n  method = json.method || 'pdf_direct';\n}\nelse if (json.text && json.text.length > 10) {\n  cvText = json.text;\n  method = 'pdf_direct';\n}\nelse if (json.choices && json.choices[0]) {\n  cvText = json.choices[0].message?.content || '';\n  method = 'groq_ocr';\n}\nelse if (json.data) {\n  cvText = json.data;\n  method = 'docx_extract';\n}\nelse {\n  cvText = 'OCR_FAILED';\n  method = 'ocr_failed';\n}\nreturn [{\n  json: {\n    cvText: cvText.substring(0, 6000),\n    method: method,\n    fromEmail: json.fromEmail || json.from || '',\n    subject: json.subject || '',\n    ocrFailed: method === 'ocr_failed'\n  }\n}];"
+      },
+      "id": "ddc0e373-d2e8-491c-b7d5-5c22dbf10387",
+      "name": "Normalize Extracted Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        320
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "candidateEmail",
+              "value": "=={{ $json.fromEmail || $json.from?.value?.[0]?.address || $('When CV Email Arrives').item.json.from?.value?.[0]?.address }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "subject",
+              "value": "={{ $json.subject || $('When CV Email Arrives').item.json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "cvText",
+              "value": "={{ $json.cvText }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "receivedDate",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "extractMethod",
+              "value": "={{ $json.method }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a3628ef3-7787-440f-a10b-a53593b937dc",
+      "name": "Prepare Candidate Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please analyze the following candidate CV and return a complete JSON evaluation.\n\n=== CANDIDATE DETAILS ===\nEmail: {{ $json.candidateEmail }}\nReceived: {{ $json.receivedDate }}\nFile Type: {{ $json.extractMethod }}\n\n=== CV TEXT ===\n{{ $json.cvText }}\n\n=== REQUIRED JSON OUTPUT ===\n{\n  \"candidateName\": \"Full name from CV\",\n  \"email\": \"candidate email\",\n  \"phone\": \"phone or null\",\n  \"score\": 75,\n  \"decision\": \"interview\",\n  \"experienceYears\": 3,\n  \"currentRole\": \"Recent job title\",\n  \"currentCompany\": \"Recent company\",\n  \"education\": \"Degree and university\",\n  \"skills\": [\"Skill 1\", \"Skill 2\", \"Skill 3\"],\n  \"strengths\": [\"Strength 1\", \"Strength 2\"],\n  \"weaknesses\": [\"Weakness 1\"],\n  \"recommendation\": \"Professional summary max 20 words\"\n}\n\nReturn ONLY the JSON. No extra text. No markdown. No backticks.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a senior HR analyst and recruitment specialist with 10+ years of experience in talent acquisition and CV evaluation.\n\nYour job is to analyze candidate CVs objectively and return a structured JSON evaluation.\n\nSTRICT RULES:\n1. Return ONLY a valid JSON object\n2. No markdown, no backticks, no explanations\n3. Score must be 0 to 100\n4. Decision must be: \"interview\", \"waitlist\", or \"rejected\"\n5. If phone missing, set null\n\nSCORING GUIDE:\n- 80 to 100 = interview\n- 50 to 79  = waitlist\n- 0 to 49   = rejected\n\nEVALUATION CRITERIA:\n- Relevant work experience (35%)\n- Technical skills match (30%)\n- Education and certifications (20%)\n- CV presentation (15%)"
+        }
+      },
+      "id": "83f47460-3a03-424e-b81a-6cb0dc12df44",
+      "name": "AI CV Analyzer",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        704,
+        320
+      ],
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.score }}",
+                    "rightValue": 70,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "score-high"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Interview (70+)"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.score }}",
+                    "rightValue": 40,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "score-mid-1"
+                  },
+                  {
+                    "leftValue": "={{ $json.output.score }}",
+                    "rightValue": 70,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "id": "score-mid-2"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Waitlist (40-69)"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.score }}",
+                    "rightValue": 40,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "id": "score-low"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Rejected (<40)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "27578c95-ae48-4e1a-b627-7376e94d1aed",
+      "name": "Route by Score",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1168,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.output.email }}",
+        "subject": "=Interview Invitation - {{ $json.output.role }}",
+        "message": "=<div style='font-family:Arial,sans-serif;max-width:600px'><div style='background:linear-gradient(135deg,#667eea,#764ba2);padding:30px;border-radius:10px;text-align:center'><h1 style='color:white;margin:0'>Congratulations!</h1><p style='color:#f0f0f0'>You have been shortlisted for an interview</p></div><div style='padding:25px;background:#f9f9f9;border-radius:10px;margin-top:15px'><h2>Dear {{ $json.output.name }},</h2><p>We are impressed with your profile for <b>{{ $json.output.role }}</b>.</p><p><b>Score:</b> {{ $json.output.score }}/100 | <b>Experience:</b> {{ $json.output.yearsExperience }} years</p><p>{{ $json.output.recommendation }}</p><p>Our HR team will contact you within <b>2-3 business days</b>.</p></div></div>",
+        "options": {
+          "senderName": "HR Recruitment Team"
+        }
+      },
+      "id": "22de08cf-b2a3-4dd6-b4ed-67aab5b8cde5",
+      "name": "Send Interview Invitation",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        80
+      ],
+      "webhookId": "c1d35848-b4d9-4d61-81eb-25beabc57f49",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "r8MgauHRsxbhYlXE",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.output.email }}",
+        "subject": "=Application Update - {{ $json.output.role }}",
+        "message": "=<div style='font-family:Arial,sans-serif;max-width:600px'><div style='background:linear-gradient(135deg,#f6d365,#fda085);padding:30px;border-radius:10px;text-align:center'><h1 style='color:white;margin:0'>Application Under Review</h1></div><div style='padding:25px;background:#f9f9f9;border-radius:10px;margin-top:15px'><h2>Dear {{ $json.output.name }},</h2><p>Thank you for applying for <b>{{ $json.output.role }}</b>.</p><p><b>Score:</b> {{ $json.output.score }}/100</p><p>Your application is on our waitlist. We will be in touch.</p></div></div>",
+        "options": {
+          "senderName": "HR Recruitment Team"
+        }
+      },
+      "id": "2f0ff1d2-96ac-4617-9cb2-bacafbe2b148",
+      "name": "Send Waitlist Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        272
+      ],
+      "webhookId": "daade02b-bade-4da0-a914-a9231a8a6b03",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "r8MgauHRsxbhYlXE",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.output.email }}",
+        "subject": "=Application Status - {{ $json.output.role }}",
+        "message": "=<div style='font-family:Arial,sans-serif;max-width:600px'><div style='background:linear-gradient(135deg,#a8a8a8,#6e6e6e);padding:30px;border-radius:10px;text-align:center'><h1 style='color:white;margin:0'>Application Update</h1></div><div style='padding:25px;background:#f9f9f9;border-radius:10px;margin-top:15px'><h2>Dear {{ $json.output.name }},</h2><p>Thank you for applying for <b>{{ $json.output.role }}</b>. After careful review, we have decided to move forward with other candidates.</p><p>We encourage you to apply again in the future.</p></div></div>",
+        "options": {
+          "senderName": "HR Recruitment Team"
+        }
+      },
+      "id": "5aae8e59-4411-4e34-a3db-0e5fcfdb8626",
+      "name": "Send Polite Rejection",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        656
+      ],
+      "webhookId": "ebb6b5ac-f00a-4895-b3d3-bccfd3fef887",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "r8MgauHRsxbhYlXE",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "id": "2cf2f08e-f7bf-45c7-b796-cea9d3048b36",
+      "name": "Daily at 9 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1120,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1_ZSY2sS4c-7X-4hOsSIwZNAhwD6yGdkqhY8Lw7WnO8g",
+          "mode": "list",
+          "cachedResultName": "Recruitment Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_ZSY2sS4c-7X-4hOsSIwZNAhwD6yGdkqhY8Lw7WnO8g/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_ZSY2sS4c-7X-4hOsSIwZNAhwD6yGdkqhY8Lw7WnO8g/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "7cd75b5d-7565-4db7-bbe4-c315d6f438c0",
+      "name": "Fetch All Candidates",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -896,
+        928
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "vbFa6TOCKoCvshnp",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "totalCandidates",
+              "value": "={{ $input.all().length }}",
+              "type": "number"
+            },
+            {
+              "id": "2",
+              "name": "averageScore",
+              "value": "={{ Math.round($input.all().reduce((sum, item) => sum + parseFloat(item.json.Score || 0), 0) / $input.all().length) }}",
+              "type": "number"
+            },
+            {
+              "id": "3",
+              "name": "interviewCount",
+              "value": "={{ $input.all().filter(item => item.json.Category === 'Interview').length }}",
+              "type": "number"
+            },
+            {
+              "id": "4",
+              "name": "waitlistCount",
+              "value": "={{ $input.all().filter(item => item.json.Category === 'Waitlist').length }}",
+              "type": "number"
+            },
+            {
+              "id": "5",
+              "name": "rejectedCount",
+              "value": "={{ $input.all().filter(item => item.json.Category === 'Rejected').length }}",
+              "type": "number"
+            },
+            {
+              "id": "6",
+              "name": "topCandidates",
+              "value": "={{ $input.all().sort((a, b) => parseFloat(b.json.Score) - parseFloat(a.json.Score)).slice(0, 5) }}",
+              "type": "array"
+            },
+            {
+              "id": "7",
+              "name": "ocrUsedCount",
+              "value": "={{ $input.all().filter(item => (item.json['Extract Method'] || '').includes('ocr')).length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a6f612b1-f241-4253-a93a-29d5f21f9222",
+      "name": "Calculate Report Statistics",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -672,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "allamateamwork@gmail.com",
+        "subject": "=Daily Recruitment Report - {{ $now.toFormat('MMMM d, yyyy') }}",
+        "message": "=<div style='font-family:Arial,sans-serif;max-width:700px;margin:0 auto'><div style='background:#1a1a2e;padding:30px;border-radius:12px;text-align:center'><h1 style='color:#e94560;margin:0'>Daily Recruitment Report</h1><p style='color:#a8a8b3'>{{ $now.toFormat('MMMM d, yyyy') }}</p></div><table style='width:100%;border-collapse:separate;border-spacing:5px;margin-top:15px'><tr><td style='background:#e8f5e9;padding:20px;border-radius:8px;text-align:center'><h2 style='color:#2e7d32;margin:0'>{{ $json.totalCandidates }}</h2><p style='margin:5px 0'>Total</p></td><td style='background:#e3f2fd;padding:20px;border-radius:8px;text-align:center'><h2 style='color:#1565c0;margin:0'>{{ $json.interviewCount }}</h2><p style='margin:5px 0'>Interview</p></td><td style='background:#fff3e0;padding:20px;border-radius:8px;text-align:center'><h2 style='color:#e65100;margin:0'>{{ $json.waitlistCount }}</h2><p style='margin:5px 0'>Waitlist</p></td><td style='background:#fce4ec;padding:20px;border-radius:8px;text-align:center'><h2 style='color:#c62828;margin:0'>{{ $json.rejectedCount }}</h2><p style='margin:5px 0'>Rejected</p></td></tr></table><p style='text-align:center;color:#aaa;font-size:11px;margin-top:20px'>AI Recruitment System | n8n</p></div>",
+        "options": {
+          "senderName": "AI Recruitment System"
+        }
+      },
+      "id": "9ffefe5e-bc16-4ec8-af07-d175672cf5d7",
+      "name": "Email Daily Report to HR",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -448,
+        928
+      ],
+      "webhookId": "c3867c36-202c-479a-8de6-fedf07d5d89a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "r8MgauHRsxbhYlXE",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        800,
+        544
+      ],
+      "id": "c463942e-af85-4d65-98e2-33cb5dc69760",
+      "name": "Auto-fixing Output Parser",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"score\": 75,\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+92-300-1234567\",\n  \"experience_years\": 5,\n  \"education\": \"Bachelor's in Computer Science\",\n  \"skills\": [\"Python\", \"JavaScript\", \"SQL\"],\n  \"recommendation\": \"Interview\",\n  \"summary\": \"Strong candidate with relevant experience\",\n  \"strengths\": \"Good technical skills\",\n  \"weaknesses\": \"Lacks leadership experience\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        976,
+        752
+      ],
+      "id": "7dac44d4-d515-4eec-aa4f-94193b7b31a6",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "attachment0",
+        "destinationKey": "cvText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        704
+      ],
+      "id": "eb8a04b7-05ba-4956-b9c0-9869f5687c44",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1_ZSY2sS4c-7X-4hOsSIwZNAhwD6yGdkqhY8Lw7WnO8g",
+          "mode": "list",
+          "cachedResultName": "Recruitment Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_ZSY2sS4c-7X-4hOsSIwZNAhwD6yGdkqhY8Lw7WnO8g/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_ZSY2sS4c-7X-4hOsSIwZNAhwD6yGdkqhY8Lw7WnO8g/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name ": "={{ $json.output.name }}",
+            "Email ": "={{ $json.output.email }}",
+            "Phone ": "={{ $json.output.phone }}",
+            "ID": "={{ $now.toMillis() }}",
+            "Experience ": "={{ $json.output.experience_years }}",
+            "Score": "={{ $json.output.score }}",
+            "Education": "={{ $json.output.education }}",
+            "Skills ": "={{ $json.output.skills[0] }}{{ $json.output.skills[1] }}{{ $json.output.skills[2] }}{{ $json.output.skills[3] }}{{ $json.output.skills[4] }}",
+            "Recommendation": "={{ $json.output.summary }}{{ $json.output.recommendation }}",
+            "Date ": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+            "Role ": "={{ $json.output.recommendation }}",
+            "Category": "={{ $json.output.strengths }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date ",
+              "displayName": "Date ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name ",
+              "displayName": "Name ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email ",
+              "displayName": "Email ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone ",
+              "displayName": "Phone ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role ",
+              "displayName": "Role ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Experience ",
+              "displayName": "Experience ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Education",
+              "displayName": "Education",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Skills ",
+              "displayName": "Skills ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recommendation",
+              "displayName": "Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1392,
+        464
+      ],
+      "id": "bc23f7bc-49ad-47c7-b6a2-0fac474acf80",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "vbFa6TOCKoCvshnp",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ocr.space/parse/image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "K87377592488957"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "attachment0"
+            },
+            {
+              "name": "language",
+              "value": "eng"
+            },
+            {
+              "name": "isOverlayRequired",
+              "value": "false"
+            },
+            {
+              "name": "detectOrientation",
+              "value": "true"
+            },
+            {
+              "name": "scale",
+              "value": "true"
+            },
+            {
+              "name": "OCREngine",
+              "value": "2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1002355a-8b9b-4a89-934b-c98d7c77e08b",
+      "name": "OCR.space (Image CV)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        816,
+        752
+      ],
+      "id": "7ceb56cd-cc90-463c-b89b-326354e287c9",
+      "name": "Groq Chat Model1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        528
+      ],
+      "id": "0afdf855-0261-4c42-aa95-166397fdc8bf",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Q36NNK05RLjMNP07",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When CV Email Arrives": {
+      "main": [
+        [
+          {
+            "node": "Detect File Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect File Format": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Image Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract DOCX Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Check PDF Has Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check PDF Has Text": {
+      "main": [
+        [
+          {
+            "node": "PDF Text or OCR?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF Text or OCR?": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Groq OCR (Scanned PDF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq OCR (Scanned PDF)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Image Data": {
+      "main": [
+        [
+          {
+            "node": "OCR.space (Image CV)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract DOCX Text": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Extracted Text": {
+      "main": [
+        [
+          {
+            "node": "Prepare Candidate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Candidate Data": {
+      "main": [
+        [
+          {
+            "node": "AI CV Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI CV Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Route by Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Score": {
+      "main": [
+        [
+          {
+            "node": "Send Interview Invitation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Waitlist Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Polite Rejection",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily at 9 AM": {
+      "main": [
+        [
+          {
+            "node": "Fetch All Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch All Candidates": {
+      "main": [
+        [
+          {
+            "node": "Calculate Report Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Report Statistics": {
+      "main": [
+        [
+          {
+            "node": "Email Daily Report to HR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI CV Analyzer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR.space (Image CV)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI CV Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "072ba496-0722-4a32-ae3e-06c24f72b9de",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dfdcd2350d746626ca4dbf4be673674434cadbb72b429e05029dd72911dbabb5"
+  },
+  "id": "pCPRwjG7Eii9O5BE",
+  "tags": []
+}
