@@ -291,7 +291,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer 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"
+              "value": "=Bearer api key"
             },
             {
               "name": "Content-Type",
