@@ -1,19 +1,19 @@
 # 🤖 AI CV Recruitment System
 
-A fully automated, end-to-end recruitment pipeline built on **n8n**. It eliminates manual HR screening by automatically collecting CVs from email, extracting text from multiple file formats, analyzing candidates using advanced AI models, scoring them on a 0–100 scale, and dispatching personalized email responses — all without any human intervention.
+A fully automated, end-to-end recruitment pipeline built on **n8n**. It eliminates manual HR screening by automatically collecting CVs from email, extracting text from multiple file formats, analyzing candidates using advanced AI models, scoring them on a 0–100 scale, and dispatching personalized email responses - all without any human intervention.
 
 ---
 
 ## ✨ Features
 
-- **📧 Email Monitoring** — Continuously polls Gmail for unread emails with CV attachments
-- **📄 Multi-Format Support** — Handles PDF (text & scanned), DOCX, Image (JPG/PNG), and TXT files
-- **🔍 OCR Processing** — Uses Groq Vision AI and OCR.space API for scanned/image CVs
-- **🧠 AI Analysis** — Google Gemini 2.0 Flash and Groq LLM evaluate candidates objectively
-- **📊 Smart Scoring** — Candidates receive a 0–100 score with Interview / Waitlist / Rejected decision
-- **📬 Auto Notifications** — Sends branded HTML emails to candidates based on their result
-- **🗃️ Data Logging** — All candidate data is saved to Google Sheets automatically
-- **📋 Daily Reports** — Sends a daily recruitment summary email to HR at 9:00 AM
+- **📧 Email Monitoring** -Continuously polls Gmail for unread emails with CV attachments
+- **📄 Multi-Format Support** - Handles PDF (text & scanned), DOCX, Image (JPG/PNG), and TXT files
+- **🔍 OCR Processing** - Uses Groq Vision AI and OCR.space API for scanned/image CVs
+- **🧠 AI Analysis** - Google Gemini 2.0 Flash and Groq LLM evaluate candidates objectively
+- **📊 Smart Scoring** - Candidates receive a 0–100 score with Interview / Waitlist / Rejected decision
+- **📬 Auto Notifications** - Sends branded HTML emails to candidates based on their result
+- **🗃️ Data Logging** - All candidate data is saved to Google Sheets automatically
+- **📋 Daily Reports** - Sends a daily recruitment summary email to HR at 9:00 AM
 
 ---
 
@@ -23,8 +23,8 @@ A fully automated, end-to-end recruitment pipeline built on **n8n**. It eliminat
 |---|---|
 | Workflow Engine | n8n (self-hosted) |
 | Primary AI | Google Gemini 2.0 Flash |
-| Secondary AI | Groq — llama3-70b |
-| OCR (Scanned PDF) | Groq — llama-4-scout-17b |
+| Secondary AI | Groq - llama3-70b |
+| OCR (Scanned PDF) | Groq - llama-4-scout-17b |
 | OCR (Images) | OCR.space API |
 | Email | Gmail API (OAuth2) |
 | Storage | Google Sheets API |
